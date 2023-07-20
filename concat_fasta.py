@@ -1,8 +1,17 @@
-from Bio import SeqIO
+import os
+import sys
+# No SeqIO elements were used, so I removed it.
+'''
+The structure of the command is: "python3 concat_fasta.py protein1.fa protein2.fa".
+This modified script takes two user-defined protein fasta files as input, outputs the concatenated fasta file of the
+two, along with the shared taxa list.
+'''
 
-Protein1_fasta = open("59272_ACE2.fa", "r").readlines()
-
-Protein2_fasta = open("84873_ADGRG7.fa", "r").readlines()
+# Takes two command line arguments, one for each protein
+protein1 = sys.argv[1]
+protein2 = sys.argv[2]
+Protein1_fasta = open(protein1, "r").readlines()
+Protein2_fasta = open(protein2, "r").readlines()
 
 
 def make_seq_dict(fasta_lines):
@@ -14,8 +23,8 @@ def make_seq_dict(fasta_lines):
             seq_dict[current_seq] = ""
         else:
             seq_dict[current_seq] += fasta_lines[i][:-1]
-    return(seq_dict)
-            
+    return seq_dict
+
 
 Protein1_dict = make_seq_dict(Protein1_fasta)
 Protein2_dict = make_seq_dict(Protein2_fasta)
@@ -26,6 +35,7 @@ concat_dict = {}
 
 for i in species_list:
     concat_dict[i] = Protein1_dict[i] + Protein2_dict[i]
+
 
 def split_by_60(string):
     count = 0
@@ -44,7 +54,7 @@ def split_by_60(string):
     for i in lines:
         final_string += i
         final_string += "\n"
-    return(final_string)
+    return final_string
 
 
 out = ""
@@ -56,12 +66,18 @@ for i in concat_dict.keys():
     out += split_by_60(concat_dict[i])
     taxa_list += i.replace("_", " ")
     taxa_list += "\n"
-	
 
-with open("ACE2_ADGRG7.fa", "w") as f:
+# New, Get the base names of the input fasta files (without the '.fa' extension)
+base_name1 = os.path.splitext(protein1)[0]
+base_name2 = os.path.splitext(protein2)[0]
+
+concat_fasta = f"{base_name1}_{base_name2}.fa"
+csv = f"{base_name1}_{base_name2}_taxa_list.csv"
+
+with open(concat_fasta, "w") as f:
     f.write(out)
 
-with open("ACE2_ADGRG7_taxa_list.csv", "w") as l:
+with open(csv, "w") as l:
     l.write(taxa_list)
     
     
