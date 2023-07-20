@@ -11,7 +11,8 @@ def format_taxa_name(taxa_name):
 
 
 shared_taxa_names = []
-with open("shared_taxa.csv", "r") as file:
+with open("shared_taxa.csv", "r") as file:  # This "shared_taxa.csv" need to be changed, as the name of the csv will change based on different proteins. 
+                                            # See modified concat_fasta.py
     reader = file.readlines()
     for row in reader:
         shared_taxa_names += [format_taxa_name(row[:-1])]
