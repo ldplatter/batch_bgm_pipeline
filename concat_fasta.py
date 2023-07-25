@@ -21,6 +21,16 @@ def format_taxa_name(taxa_name):
     taxa_name = taxa_name.capitalize()
     return taxa_name
 
+# Load the master tree
+master_tree = Phylo.read("202_taxa_set_tree.nwk", "newick")
+
+
+def format_taxa_name(taxa_name):
+    taxa_name = taxa_name.lower()
+    taxa_name = taxa_name.replace(" ", "_")
+    taxa_name = taxa_name.capitalize()
+    return taxa_name
+
 
 def make_seq_dict(fasta_lines):
     seq_dict = {}
@@ -142,12 +152,13 @@ for taxa in all_taxa:
     if not (taxa in shared_taxa_names):
         taxa_to_prune += [taxa]
 
-
 for taxa in taxa_to_prune:
     if len(sys.argv) > 3 and sys.argv[3] == "108":
         taxa = taxa.upper()
+        master_tree.prune(taxa)
     else:
         master_tree.prune(taxa)
+
 
 shared_phylo_tree = f"shared_taxa_{base_name1}_{base_name2}.nwk"
 
