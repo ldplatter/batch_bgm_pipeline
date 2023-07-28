@@ -2,10 +2,13 @@ import os
 import sys
 import subprocess
 from Bio import Phylo
-import click
+import glob
 
 '''
 The structure of the command is: "python3 run_bgm.py protein1.fa protein2.fa [taxa_number/NA]".
+
+protein2 could be either fasta file or a directory, in which case all fasta files in that directory will be 
+concatenated with protein1 and run BGM tests respectively.
 
 This modified script takes two user-defined raw protein fasta files as input, outputs the aligned fasta file,
 both single and concatenated, the shared taxa list as a CSV file, and the pruned phylogenetic tree Newick file.
@@ -172,8 +175,10 @@ if __name__ == "__main__":
 
     if os.path.isdir(protein2):
         for filename in os.listdir(protein2):
-            if filename.endswith('.fa') or filename.endswith('.fasta'):
-                fasta_file = os.path.join(protein2, filename)
-                process_files(protein1, fasta_file, master_tree)
+            protein2_files = glob.glob(os.path.join(protein2, '*.fa*'))
+            for protein2 in protein2_files:
+                # Make a deep copy of the master tree for each protein2
+                process_files(protein1, protein2, master_tree)
     else:
         process_files(protein1, protein2, master_tree)
+
