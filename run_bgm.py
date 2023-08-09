@@ -3,6 +3,7 @@ import sys
 import subprocess
 from Bio import Phylo
 import glob
+import pexpect
 
 '''
 The structure of the command is: "python3 run_bgm.py protein1.fa protein2.fa [taxa_number/NA]".
@@ -80,11 +81,24 @@ def align_fasta(fastafile, outputfile, threads=5):
     assert os.path.exists(outputfile), f"Output file {outputfile} was not created."
 
 
-def call_bgm(f_file, tree, model):
-    cmd = f"hyphy /usr/local/share/hyphy/TemplateBatchFiles/BGM.bf --type amino-acid " \
-          f"--alignment {f_file} " \
-          f"--tree {tree} --baseline_model {model}"
-    subprocess.call(cmd, shell=True)
+def call_bgm(f_file, tree):
+    command = "hyphy -i"
+    child = pexpect.spawn(command)
+
+    child.sendline("4")  # Coevolution
+    child.sendline("1")  # BGM
+    child.sendline("2")  # Amino-Acid
+    child.sendline(f_file)  # Aligned fasta file
+    child.sendline("2")  # GTR
+    child.sendline(tree)  # Tree
+    child.sendline("1")  # All
+    child.sendline("100000")  # MCMC Steps to sample
+    child.sendline("10000")  # MCMC Steps to burn
+    child.sendline("100")  # Steps to extract from the chain sample
+    child.sendline("1")  # Maximum parents allowed per node
+    child.sendline("1")  # Minimum substitutions per site
+
+    child.interact()
 
 
 def process_files(p1, p2, tree):
@@ -160,8 +174,7 @@ def process_files(p1, p2, tree):
 
     Phylo.write(tree, shared_phylo_tree, "newick")
 
-    sub_model = "GTR"
-    call_bgm(concat_fasta, shared_phylo_tree, sub_model)
+    call_bgm(concat_fasta, shared_phylo_tree)
 
 
 if __name__ == "__main__":
@@ -177,8 +190,6 @@ if __name__ == "__main__":
         for filename in os.listdir(protein2):
             protein2_files = glob.glob(os.path.join(protein2, '*.fa*'))
             for protein2 in protein2_files:
-                # Make a deep copy of the master tree for each protein2
                 process_files(protein1, protein2, master_tree)
     else:
         process_files(protein1, protein2, master_tree)
-
