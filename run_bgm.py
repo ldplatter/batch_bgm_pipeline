@@ -17,11 +17,10 @@ If taxa number equals to 108, then the 108 mammalian taxa phylogenetic tree was 
 
 If this argument is ignored, then the new 202 taxa master tree was used.
 
-The script then carry out BGM utilizing HyPhy package automatically. To ensure the script works, make sure the path to 
-BGM.bf is the correct one on your local machine. E.g., /usr/local/share/hyphy/TemplateBatchFiles/BGM.bf. This could be
-modified in the call_bgm function.
+The script then carry out BGM utilizing HyPhy package automatically. It creates a HyPhy interactive session and 
+automatically run BGM tests using GTR model and input data (generated prior to running BGMs).
 
-The substitution model and further parameters could be also modified by adding extra flags in the command.
+The substitution model and further parameters could be also modified by editing parameters inside the call_bgm function.
 '''
 
 
@@ -84,31 +83,25 @@ def align_fasta(fastafile, outputfile, threads=5):
 def call_bgm(f_file, tree):
     command = "hyphy -i"
     child = pexpect.spawn(command)
-
     child.sendline("4")  # Coevolution
     child.sendline("1")  # BGM
     child.sendline("2")  # Amino-Acid
-    child.sendline(f_file)  # Aligned fasta file
-    child.sendline("2")  # GTR
-    child.sendline(tree)  # Tree
+    child.sendline(f_file)
+    child.sendline("11")  # GTR
+    child.sendline(tree)
     child.sendline("1")  # All
     child.sendline("100000")  # MCMC Steps to sample
     child.sendline("10000")  # MCMC Steps to burn
     child.sendline("100")  # Steps to extract from the chain sample
     child.sendline("1")  # Maximum parents allowed per node
     child.sendline("1")  # Minimum substitutions per site
-
     child.interact()
 
 
 def process_files(p1, p2, tree):
     # Output file names
     aligned_protein1 = f"aligned_{os.path.basename(p1)}"
-    aligned_protein2 = f"aligned_{os.path.basename(p2)}"
-
-    # Align the sequences
-    align_fasta(p1, aligned_protein1)
-    align_fasta(p2, aligned_protein2)
+    aligned_protein2 = os.path.join(os.path.dirname(p2), f"{os.path.basename(p2)}")
 
     Protein1_fasta = open(aligned_protein1, "r").readlines()
     Protein2_fasta = open(aligned_protein2, "r").readlines()
@@ -171,9 +164,7 @@ def process_files(p1, p2, tree):
             tree.prune(taxa)
 
     shared_phylo_tree = f"shared_taxa_{base_name1}_{base_name2}.nwk"
-
     Phylo.write(tree, shared_phylo_tree, "newick")
-
     call_bgm(concat_fasta, shared_phylo_tree)
 
 
@@ -190,6 +181,7 @@ if __name__ == "__main__":
         for filename in os.listdir(protein2):
             protein2_files = glob.glob(os.path.join(protein2, '*.fa*'))
             for protein2 in protein2_files:
+                # Make a deep copy of the master tree for each protein2
                 process_files(protein1, protein2, master_tree)
     else:
         process_files(protein1, protein2, master_tree)
