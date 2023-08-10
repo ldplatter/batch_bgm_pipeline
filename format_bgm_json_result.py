@@ -3,18 +3,25 @@ import json
 from networkx import *
 import matplotlib.pyplot as plt
 import sys
+from Bio import SeqIO
 
-help_text = "Arguments:\n--graph True/False\n\tDefault False, determines if a graph will be drawn.\
+help_text = "Arguments:\n--graph True/False\n\t Default False, determines if a graph will be drawn.\
             \n\n--threshold num\n\t Default 0.9, confidence of conditional dependence.\
             \n\n--file filename\n\t Required, filename of json file containing bgm data.\
-            \n\n--out filename\n\t Root name for output files."
+            \n\n--out filename\n\t Root name for output files.\
+            \n\n--protein1 protein1.fa\n\t Required, fasta file for the first protein in the concatenated sequence."
 
 help_flag = False
 make_graph = False
 threshold = 0.9
 filename = ""
 out = "bgm_output"
+protein1_length = 0
 
+# Returns length of the first sequence in a fasta file.
+def length_of_first_sequence(fasta_file):
+    for record in SeqIO.parse(fasta_file, "fasta"):
+        return(len(record.seq))
 
 # Determines what to do based on command line input.
 for i in range(len(sys.argv)):
@@ -37,9 +44,11 @@ for i in range(len(sys.argv)):
             print(help_text)
         elif sys.argv[i] == "--out":
             out = sys.argv[i+1]
+        elif sys.argv[i] == "--protein1":
+            protein1_length = length_of_first_sequence(sys.argv[i+1]) 
         else:
             raise ValueError("Unknown argument: {}".format(sys.argv[i]))
-
+        
 
 # Loads bgm result json file and creates a new dataframe containing only the results of the bgm.
 def initialize_results(file):
@@ -88,6 +97,32 @@ def find_probable_sites(bgm_df, confidence=0.9, print_format=False):
         return probable_sites_df[["Site1", "Site2", "Site1 <--> Site2", "Shared Subs"]]
     return probable_sites_df
 
+# Determines if interactions are within one protein or between the two proteins, as well as determines direction of interaction.
+def add_within_between(bgm_data, protein1_length):
+    interaction_types = []
+    direction_types = []
+    for entry_ID in bgm_data.index:
+        print
+        if int(bgm_data["Site1"][entry_ID]) <= protein1_length and int(bgm_data["Site2"][entry_ID]) > protein1_length:
+            interaction_types += ["Between"]
+        else:
+            interaction_types += ["Within"]
+        if (float(bgm_data["Site1 --> Site2"][entry_ID])/float(bgm_data["Site1 <--> Site2"][entry_ID])) > 0.8:
+            direction_types += ["1->2"]
+        elif (float(bgm_data["Site1 <-- Site2"][entry_ID])/float(bgm_data["Site1 <--> Site2"][entry_ID])) > 0.8:
+            direction_types += ["2->1"]
+        else:
+            direction_types += ["Bi"]
+    bgm_data["Identity"] = interaction_types
+    bgm_data["Direction"] = direction_types
+    return(bgm_data)
+    
+    
+# Generates summary data: Density and Directionality
+def generate_summary(bgm_data):
+    density = (len(bgm_data[bgm_data["Identity"] == "Between"]) / protein1_length)
+    directionality = (len(bgm_data[bgm_data["Direction"] == "1->2"]) / len(bgm_data))
+    return(density, directionality)
 
 # Creates graphs displaying bgm data.
 def create_graph(bgm_df, confidence=0.9):
@@ -120,13 +155,24 @@ def create_graph(bgm_df, confidence=0.9):
     draw_networkx(g, pos=pos, node_color=node_colors, node_size=150, font_size=6)
     plt.savefig(out + "_all_nodes.png", dpi=400)
     
+
     
 # Run the program.
 if not help_flag:
     bgm_df = initialize_results(filename)
     probable_sites = find_probable_sites(bgm_df, threshold)
+    labeled_sites = add_within_between(probable_sites, protein1_length)
 
-    probable_sites.to_csv(out + "_probable_sites.csv")
+    labeled_sites.to_csv(out + "_probable_sites.csv")
+    
+    density, directionality = generate_summary(labeled_sites)
+    summary_name = out + "_summary.txt"
+    summary_file = open(summary_name, "w")
+    n = summary_file.write(str(density) + " " + str(directionality))
+    summary_file.close()
+    
+    
+    
 
 # Create and save the graphs.
 if make_graph:
