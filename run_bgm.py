@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 from Bio import Phylo
+from concurrent.futures import ThreadPoolExecutor
 import glob
 import pexpect
 
@@ -103,17 +104,17 @@ def process_files(p1, p2, tree):
     aligned_protein1 = f"aligned_{os.path.basename(p1)}"
     aligned_protein2 = os.path.join(os.path.dirname(p2), f"{os.path.basename(p2)}")
 
-    Protein1_fasta = open(aligned_protein1, "r").readlines()
-    Protein2_fasta = open(aligned_protein2, "r").readlines()
-    Protein1_dict = make_seq_dict(Protein1_fasta)
-    Protein2_dict = make_seq_dict(Protein2_fasta)
+    protein1_fasta = open(aligned_protein1, "r").readlines()
+    protein2_fasta = open(aligned_protein2, "r").readlines()
+    protein1_dict = make_seq_dict(protein1_fasta)
+    protein2_dict = make_seq_dict(protein2_fasta)
 
-    species_list = [i for i in Protein1_dict.keys() if i in Protein2_dict.keys()]
+    species_list = [i for i in protein1_dict.keys() if i in protein2_dict.keys()]
 
     concat_dict = {}
 
     for i in species_list:
-        concat_dict[i] = Protein1_dict[i] + Protein2_dict[i]
+        concat_dict[i] = protein1_dict[i] + protein2_dict[i]
 
     out = ""
     taxa_list = ""
@@ -126,7 +127,7 @@ def process_files(p1, p2, tree):
         taxa_list += i.replace("_", " ")
         taxa_list += "\n"
 
-# New, Get the base names of the input fasta files (without the '.fa' extension)
+    # New, Get the base names of the input fasta files (without the '.fa' extension)
     base_name1 = os.path.splitext(os.path.basename(p1))[0]
     base_name2 = os.path.splitext(os.path.basename(p2))[0]
 
@@ -136,10 +137,10 @@ def process_files(p1, p2, tree):
     with open(concat_fasta, "w") as f:
         f.write(out)
 
-    with open(csv, "w") as l:
-        l.write(taxa_list)
+    with open(csv, "w") as lst:
+        lst.write(taxa_list)
 
-# Read the taxa names from the output csv file
+    # Read the taxa names from the output csv file
     shared_taxa_names = []
     with open(csv, "r") as file:
         reader = file.readlines()
@@ -165,13 +166,21 @@ def process_files(p1, p2, tree):
 
     shared_phylo_tree = f"shared_taxa_{base_name1}_{base_name2}.nwk"
     Phylo.write(tree, shared_phylo_tree, "newick")
-    call_bgm(concat_fasta, shared_phylo_tree)
+    return concat_fasta, shared_phylo_tree
+    # call_bgm(concat_fasta, shared_phylo_tree)
+
+
+# New function, run in multiple parallel processes
+def run_in_parallel(params):
+    f_file, tree = params
+    call_bgm(f_file, tree)
 
 
 if __name__ == "__main__":
     protein1 = sys.argv[1]
     protein2 = sys.argv[2]
-# Load the master tree, allowing for two phylo master tree options
+    input_files = []  # An empty list used to store file (names) for BGM
+    # Load the master tree, allowing for two phylo master tree options
     if len(sys.argv) > 3 and sys.argv[3] == "108":
         master_tree = Phylo.read("finished_mam_timetree.nwk", "newick")
     else:
@@ -181,7 +190,12 @@ if __name__ == "__main__":
         for filename in os.listdir(protein2):
             protein2_files = glob.glob(os.path.join(protein2, '*.fa*'))
             for protein2 in protein2_files:
-                # Make a deep copy of the master tree for each protein2
-                process_files(protein1, protein2, master_tree)
+                concat_fasta, shared_phylo_tree = process_files(protein1, protein2, master_tree)
+                input_files.append((concat_fasta, shared_phylo_tree))
     else:
-        process_files(protein1, protein2, master_tree)
+        concat_fasta, shared_phylo_tree = process_files(protein1, protein2, master_tree)
+        input_files.append((concat_fasta, shared_phylo_tree))
+
+        # Use a ThreadPoolExecutor to run in parallel
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        executor.map(run_in_parallel, input_files)
