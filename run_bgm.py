@@ -101,7 +101,7 @@ def call_bgm(f_file, tree):
 
 def process_files(p1, p2, tree):
     # Output file names
-    aligned_protein1 = f"aligned_{os.path.basename(p1)}"
+    aligned_protein1 = f"aligned_{os.path.basename(p1)}" # if the protein is already aligned, delete the 'aligned_' part
     aligned_protein2 = os.path.join(os.path.dirname(p2), f"{os.path.basename(p2)}")
 
     protein1_fasta = open(aligned_protein1, "r").readlines()
