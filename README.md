@@ -1,7 +1,6 @@
 ## Batch_BGM_pipeline
 The goal of this pipeline is to carry out co-evolutionary analysis 
-of proteins of interest utilizing HyPhy Bayesian Graphical Model package,
-partially assisted with the previous ERC pipeline.
+of proteins of interest utilizing HyPhy Bayesian Graphical Model package, assisted with the previous ERC pipeline.
 
 ### Input files
 1. Two protein multiple sequences alignment (MSA) files, **could be 
