@@ -1,3 +1,6 @@
+*format_json_file.py, parse_fasta.py, and prune_tree.py were integrated into the run_bgm.py thus **not needed** if 
+running the whole test.*
+
 ## Batch_BGM_pipeline
 The goal of this pipeline is to carry out co-evolutionary analysis 
 of proteins of interest utilizing HyPhy Bayesian Graphical Model package, assisted with the previous ERC pipeline.
