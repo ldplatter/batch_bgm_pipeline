@@ -1,4 +1,4 @@
-*format_json_file.py, parse_fasta.py, and prune_tree.py were integrated into the run_bgm.py thus **not needed** if 
+*format_bgm_json_result.py, parse_fasta.py, and prune_tree.py were integrated into the run_bgm.py thus **not needed** if 
 running the whole test.*
 
 ## Batch_BGM_pipeline
