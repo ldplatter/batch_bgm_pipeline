@@ -20,6 +20,7 @@ parameters, if necessary.
 1. A json file encoded with the raw data of conditional dependencies between 
 every tested nodes. Each amino acid residue that met the minimum substitution
 requirements were regarded as one node.
-2. Processed CSV files filtering interactions
+2. Processed summary CSV files filtering interactions
 based on posterior probabilities cutoffs (primarily 50% and 90%).
-3. Bayesian graphs visualizing interactions between selected nodes using ```networkx```.
+4. Bayesian graphs visualizing interactions between selected nodes using ```networkx```.
+
